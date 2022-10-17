@@ -1,3 +1,22 @@
+variable whitelist {
+    type = list
+}
+variable image_id {
+    type = string
+}
+variable image_type {
+    type = string
+}
+variable desired_capacity {
+    type = number
+}
+variable max_size {
+    type = number
+}
+variable min_size {
+    type = number
+}
+
 provider "aws" {
     profile = "default"
     region  = "us-east-1"
@@ -33,8 +52,6 @@ resource "aws_default_subnet" "default_az2" {
     }
  }
 
-
-
 resource "aws_security_group" "prod_web" {
     name = "prod_web"
     description = "Allow standard HTTP(S) ports inbound and everything outbound"
@@ -43,21 +60,21 @@ resource "aws_security_group" "prod_web" {
         from_port = 80
         to_port = 80
         protocol = "tcp"
-        cidr_blocks = [ "0.0.0.0/0" ]
+        cidr_blocks = var.whitelist
     }
 
     ingress {
         from_port = 443
         to_port = 443
         protocol = "tcp"
-        cidr_blocks = [ "0.0.0.0/0" ]
+        cidr_blocks = var.whitelist
     }
 
     egress {
         from_port = 0
         to_port = 0
         protocol = -1
-        cidr_blocks = [ "0.0.0.0/0" ]
+        cidr_blocks = var.whitelist
     }
 
     tags = {
@@ -68,8 +85,8 @@ resource "aws_security_group" "prod_web" {
 resource "aws_instance" "prod_web" {
     count = 2
 
-    ami = "ami-0b73f70247c2526d6"
-    instance_type = "t2.nano"
+    ami = var.image_id
+    instance_type = var.image_type
 
     vpc_security_group_ids = [
         aws_security_group.prod_web.id
@@ -112,8 +129,8 @@ resource "aws_elb" "prod_web" {
 
 resource "aws_launch_template" "prod_web" {
   name_prefix   = "prod_web"
-  image_id      = "ami-0b73f70247c2526d6"
-  instance_type = "t2.nano"
+  image_id      = var.image_id
+  instance_type = var.image_type
 
   tags = {
      "Terraform": "true"
@@ -121,9 +138,9 @@ resource "aws_launch_template" "prod_web" {
 }
 
 resource "aws_autoscaling_group" "prod_web" {
-  desired_capacity   = 2
-  max_size           = 3
-  min_size           = 1
+  desired_capacity   = var.desired_capacity
+  max_size           = var.max_size
+  min_size           = var.min_size
   vpc_zone_identifier = [ aws_default_subnet.default_az1.id, aws_default_subnet.default_az2.id ]
 
   launch_template {
