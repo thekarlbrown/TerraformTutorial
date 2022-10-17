@@ -95,7 +95,6 @@ resource "aws_eip" "prod_web" {
 
 resource "aws_elb" "prod_web" {
     name = "prod-web"
-    instances = aws_instance.prod_web.*.id
     subnets = [ aws_default_subnet.default_az1.id, aws_default_subnet.default_az2.id ]
     security_groups = [ aws_security_group.prod_web.id ]
 
@@ -109,4 +108,37 @@ resource "aws_elb" "prod_web" {
     tags = {
         "Terraform": "true"
     }
+}
+
+resource "aws_launch_template" "prod_web" {
+  name_prefix   = "prod_web"
+  image_id      = "ami-0b73f70247c2526d6"
+  instance_type = "t2.nano"
+
+  tags = {
+     "Terraform": "true"
+  }
+}
+
+resource "aws_autoscaling_group" "prod_web" {
+  desired_capacity   = 2
+  max_size           = 3
+  min_size           = 1
+  vpc_zone_identifier = [ aws_default_subnet.default_az1.id, aws_default_subnet.default_az2.id ]
+
+  launch_template {
+    id      = aws_launch_template.prod_web.id
+    version = "$Latest"
+  }
+
+    tag {
+        key = "Terraform"
+        value = "true"
+        propagate_at_launch = true
+    }
+}
+
+resource "aws_autoscaling_attachment" "asg_attachment_bar" {
+  autoscaling_group_name = aws_autoscaling_group.prod_web.id
+  elb                    = aws_elb.prod_web.id
 }
