@@ -1,10 +1,10 @@
 variable whitelist {
-    type = list
+    type = list(string)
 }
 variable image_id {
     type = string
 }
-variable image_type {
+variable instance_type {
     type = string
 }
 variable desired_capacity {
@@ -86,7 +86,7 @@ resource "aws_instance" "prod_web" {
     count = 2
 
     ami = var.image_id
-    instance_type = var.image_type
+    instance_type = var.instance_type
 
     vpc_security_group_ids = [
         aws_security_group.prod_web.id
@@ -110,52 +110,14 @@ resource "aws_eip" "prod_web" {
     }
 }
 
-resource "aws_elb" "prod_web" {
-    name = "prod-web"
-    subnets = [ aws_default_subnet.default_az1.id, aws_default_subnet.default_az2.id ]
-    security_groups = [ aws_security_group.prod_web.id ]
-
-    listener {
-      instance_port = 80
-      instance_protocol = "http"
-      lb_port = 80
-      lb_protocol = "http"
-    }
-
-    tags = {
-        "Terraform": "true"
-    }
-}
-
-resource "aws_launch_template" "prod_web" {
-  name_prefix   = "prod_web"
-  image_id      = var.image_id
-  instance_type = var.image_type
-
-  tags = {
-     "Terraform": "true"
-  }
-}
-
-resource "aws_autoscaling_group" "prod_web" {
-  desired_capacity   = var.desired_capacity
-  max_size           = var.max_size
-  min_size           = var.min_size
-  vpc_zone_identifier = [ aws_default_subnet.default_az1.id, aws_default_subnet.default_az2.id ]
-
-  launch_template {
-    id      = aws_launch_template.prod_web.id
-    version = "$Latest"
-  }
-
-    tag {
-        key = "Terraform"
-        value = "true"
-        propagate_at_launch = true
-    }
-}
-
-resource "aws_autoscaling_attachment" "asg_attachment_bar" {
-  autoscaling_group_name = aws_autoscaling_group.prod_web.id
-  elb                    = aws_elb.prod_web.id
+module "web_app" {
+  source = "./modules/webapp"
+  image_id = var.image_id
+  instance_type = var.instance_type
+  desired_capacity = var.desired_capacity
+  max_size = var.max_size
+  min_size = var.min_size
+  subnets = [aws_default_subnet.default_az1.id, aws_default_subnet.default_az2.id]
+  security_groups = [aws_security_group.prod_web.id]
+  web_app = "prod"
 }
