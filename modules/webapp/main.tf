@@ -30,17 +30,18 @@ resource "aws_autoscaling_group" "this" {
   max_size           = var.max_size
   min_size           = var.min_size
   vpc_zone_identifier = var.subnets
+  load_balancers = [ aws_elb.this.id ]
 
   launch_template {
     id      = aws_launch_template.this.id
     version = "$Latest"
   }
 
-    tag {
-        key = "Terraform"
-        value = "true"
-        propagate_at_launch = true
-    }
+  tag {
+    key = "Terraform"
+    value = "true"
+    propagate_at_launch = true
+  }
 }
 
 resource "aws_autoscaling_attachment" "this" {
