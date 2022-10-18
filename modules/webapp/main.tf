@@ -15,6 +15,23 @@ resource "aws_elb" "this" {
     }
 }
 
+resource "aws_route53_zone" "this" {
+  name = "elizabethslover.com"
+}
+
+resource "aws_route53_record" "this" {
+   zone_id = aws_route53_zone.this.zone_id
+   name    = "elizabethslover.com"
+   type    = "A"
+   alias {
+     name                   = aws_elb.this.dns_name
+     zone_id                = aws_elb.this.zone_id
+     evaluate_target_health = true
+   }
+
+   lifecycle { create_before_destroy = true }
+ }
+
 resource "aws_launch_template" "this" {
   name_prefix   = "${var.web_app}-web"
   image_id      = var.image_id
