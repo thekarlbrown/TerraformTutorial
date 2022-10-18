@@ -120,5 +120,4 @@ module "web_app" {
   subnets = [aws_default_subnet.default_az1.id, aws_default_subnet.default_az2.id]
   security_groups = [aws_security_group.prod_web.id]
   web_app = "prod"
-  vpc_security_group_ids = [aws_security_group.prod_web.id]
 }
